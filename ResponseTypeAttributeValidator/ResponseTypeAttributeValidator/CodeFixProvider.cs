@@ -1,29 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Composition;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
-using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.CodeActions;
+using System.Linq;
+using System;
 
 namespace ResponseTypeAttributeValidator
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ResponseTypeAttributeValidatorCodeFixProvider)), Shared]
     public class ResponseTypeAttributeValidatorCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Make uppercase";
+        private const string Title = "Synchronize Attribute";
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds
-        {
-            get { return ImmutableArray.Create(ResponseTypeAttributeValidatorAnalyzer.DiagnosticId); }
-        }
+        public sealed override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(ResponseTypeAttributeValidatorAnalyzer.DiagnosticId);
 
         public sealed override FixAllProvider GetFixAllProvider()
         {
@@ -33,31 +28,55 @@ namespace ResponseTypeAttributeValidator
 
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
+            var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
             // TODO: Replace the following code with your own analysis, generating a CodeAction for each fix to suggest
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-            // Find the type declaration identified by the diagnostic.
-            var declaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().First();
+            // Find the type declaration in the attribute identified by the diagnostic.
+            var declaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<TypeOfExpressionSyntax>().First();
+            var declar = root.FindToken(diagnosticSpan.Start).Parent.Ancestors().OfType<MethodDeclarationSyntax>().First();
+            var retState = declar.DescendantNodes().OfType<ReturnStatementSyntax>().First();
 
-            // Register a code action that will invoke the fix.
-            context.RegisterCodeFix(
+            var retTypeInfo = semanticModel.GetTypeInfo(retState.Expression);
+            var retType = (retTypeInfo.Type as INamedTypeSymbol)?.TypeArguments.SingleOrDefault();
+
+            if (ReferenceEquals(retType, null))
+            {
+                context.RegisterCodeFix(CodeAction.Create(
+                    @"Remove ResponseType attribute."+Environment.NewLine+"WARNING: This action might change your public API.",
+                    c => RemoveAttributeAsync(context.Document, declaration, c),
+                    Title),
+                    diagnostic);
+            }
+            else
+            {
+                context.RegisterCodeFix(
                 CodeAction.Create(
-                    title: title,
-                    createChangedSolution: c => MakeUppercaseAsync(context.Document, declaration, c),
-                    equivalenceKey: title),
+                    $"Replace attribute value with real return type {retType.Name}." + Environment.NewLine + "WARNING: This action might change your public API.",
+                    c => SynchronizeAttributeAsync(context.Document, declaration, (INamedTypeSymbol)retType, c),
+                    Title),
                 diagnostic);
+            }    
         }
 
-        private async Task<Solution> MakeUppercaseAsync(Document document, TypeDeclarationSyntax typeDecl, CancellationToken cancellationToken)
+        private async Task<Document> RemoveAttributeAsync(Document document, TypeOfExpressionSyntax declaration, CancellationToken cancellationToken)
         {
-            // Compute new uppercase name.
-            var identifierToken = typeDecl.Identifier;
-            var newName = identifierToken.Text.ToUpperInvariant();
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
+            return document;
+        }
 
-            // Get the symbol representing the type to be renamed.
+        //private async Task<Solution> MakeUppercaseAsync(Document document, TypeDeclarationSyntax typeDecl, CancellationToken cancellationToken)
+        private async Task<Solution> SynchronizeAttributeAsync(Document document, TypeOfExpressionSyntax typeDecl, INamedTypeSymbol realType, CancellationToken cancellationToken)
+        {
+            /*
+            // Compute new uppercase name.
+            var identifierToken = typeDecl;
+            var newName = identifierToken.ToString();
+
+            // Get the symbol representing the attribute type symbol
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var typeSymbol = semanticModel.GetDeclaredSymbol(typeDecl, cancellationToken);
 
@@ -68,6 +87,8 @@ namespace ResponseTypeAttributeValidator
 
             // Return the new solution with the now-uppercase type name.
             return newSolution;
+            */
+            return document.Project.Solution;
         }
     }
 }
