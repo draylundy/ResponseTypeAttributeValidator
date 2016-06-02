@@ -2,21 +2,25 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>ResponseTypeAttributeValidator</id>
-    <version>1.0.0.0</version>
-    <title>ResponseTypeAttributeValidator</title>
-    <authors>David</authors>
-    <owners>David</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <version>0.1.0.0</version>
+    <title>Validator for ResponseTypeAttributes used in WebApi 2</title>
+    <authors>draylundy</authors>
+    <owners>draylundy</owners>
+    <licenseUrl>https://github.com/draylundy/ResponseTypeAttributeValidator/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/draylundy/ResponseTypeAttributeValidator</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>ResponseTypeAttributeValidator</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
-    <copyright>Copyright</copyright>
-    <tags>ResponseTypeAttributeValidator, analyzers</tags>
+    <description>
+      Roslyn based analyzer which reads ResponseType attributes on controller methods and validates that the controller method returns a value of this type. 
+      
+      Or.. how to ensure that your developers are changing the attribute thats parsed into the public API documentation when they change the return type.
+    </description>
+    <releaseNotes>Alpha</releaseNotes>
+    <copyright>David Lundy 2016</copyright>
+    <tags>responsetype responsetypeattribute roslyn analzyer diagnostic</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System" targetFramework="" />
     </frameworkAssemblies>
+    <developmentDependency>true</developmentDependency>
   </metadata>
   <!-- The convention for analyzers is to put language agnostic dlls in analyzers\portable50 and language specific analyzers in either analyzers\portable50\cs or analyzers\portable50\vb -->
   <files>
