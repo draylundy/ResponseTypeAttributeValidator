@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ResponseTypeAttributeValidator
 {
@@ -77,6 +78,22 @@ namespace ResponseTypeAttributeValidator
                 }
             }
 
+            public ArgumentSyntax ReturnArgument
+            {
+                get
+                {
+                    return ReturnStatement.DescendantNodes().SingleOrDefault(n => n.Parent.IsKind(SyntaxKind.ArgumentList)) as ArgumentSyntax;
+                }
+            }
+
+            public InvocationExpressionSyntax ReturnInvocation
+            {
+                get
+                {
+                    return ReturnStatement.DescendantNodes().SingleOrDefault(n => n.IsKind(SyntaxKind.InvocationExpression)) as InvocationExpressionSyntax;
+                }
+            }
+
             public MismatchedReturnTypeCandidate(ReturnStatementSyntax node, ITypeSymbol namedType, bool consistent)
             {
                 ReturnStatement = node;
@@ -126,6 +143,7 @@ namespace ResponseTypeAttributeValidator
                  * want to be parsing method parameters to find the correct type. 
                  */
                 var typeInfo = semmodel.GetTypeInfo(nodeContext.Node.ChildNodes().SingleOrDefault(), nodeContext.CancellationToken);
+
                 _returnType = (typeInfo.Type as INamedTypeSymbol)?.TypeArguments.SingleOrDefault();
 
                 /*
@@ -160,17 +178,41 @@ namespace ResponseTypeAttributeValidator
 
             internal void RegisterDiagnostic(CodeBlockAnalysisContext obj)
             {
-                if (IsConsistent()) return;
+                var semModel = obj.SemanticModel;
 
-                // TODO : Handle the diagnostics better now that we're watching all the return sites and not just the first one.
+                var diagnosticLocations = new List<Location>();
+                // If we have a ResponseType attribute and no response types returned
+                if (_candidates.All(t => !t.HasReturnType))
+                {
+                    foreach(var candidate in _candidates)
+                    {
+                        diagnosticLocations.Add(candidate.ReturnInvocation.GetLocation());
+                    }
+                }
+                else if(_candidates.Any(t => t.HasReturnType && !t.IsConsistent))
+                {
+                    foreach(var candidate in _candidates.Where(t => t.HasReturnType && !t.IsConsistent))
+                    {
+                        diagnosticLocations.Add(candidate.ReturnArgument.GetLocation());
+                    }
+                }
+                else
+                {
+                    return;
+                }
 
-                var syntaxNode = _attribute.ApplicationSyntaxReference.GetSyntax();
-                var typeOf = syntaxNode.DescendantNodes().SingleOrDefault(t => t.Kind().Equals(SyntaxKind.TypeOfExpression));
+                // Now, assuming we handled one of the first two cases, report the diagnostic on the tribute
+                var attributeSyntaxNode = _attribute.ApplicationSyntaxReference.GetSyntax();
+                var typeOf = attributeSyntaxNode.DescendantNodes().SingleOrDefault(t => t.Kind().Equals(SyntaxKind.TypeOfExpression));
                 var args = typeOf.ChildNodes().SingleOrDefault();
-                var diagnostic = Diagnostic.Create(Rule, args.GetLocation(), _attributeReturnType?.ToDisplayString(), 
+
+                // If we can't find a type in the typeof something is probably wrong, but we get out of the way. 
+                if (ReferenceEquals(null, args)) return;
+
+                var attributeDiagnostic = Diagnostic.Create(Rule, args.GetLocation(), diagnosticLocations, _attributeReturnType?.ToDisplayString(), 
                     ReferenceEquals(_returnType, null) ? "No Return Type" : _returnType.ToDisplayString());
 
-                obj.ReportDiagnostic(diagnostic);
+                obj.ReportDiagnostic(attributeDiagnostic);
             }
 
         }

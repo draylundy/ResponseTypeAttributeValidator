@@ -12,44 +12,36 @@ namespace ResponseTypeAttributeValidator.Test
     public class UnitTest : CodeFixVerifier
     {
 
-        //No diagnostics expected to show up
         [TestMethod]
-        public void ShouldNotThrowWhenSameType()
+        public void ShouldNotReportDiagnosticsWhenSameType()
         {
             var test = GetFile("Car", "Car");
-
             VerifyCSharpDiagnostic(test);
         }
 
-        //No diagnostics expected to show up
         [TestMethod]
-        public void ShouldNotThrowWhenEmbeddedType()
+        public void ShouldNotReportDiagnosticsWhenEmbeddedType()
         {
             var test = GetFile("CustomResponse<Car>", "CustomResponse<Car>");
-
             VerifyCSharpDiagnostic(test);
         }
 
-        //No diagnostics expected to show up
         [TestMethod]
-        public void ShouldNotThrowWhenEmbeddedEnumberableType()
+        public void ShouldNotReportDiagnosticsWhenEmbeddedEnumberableType()
         {
             var test = GetFile("CustomResponse<IEnumerable<Car>>", "CustomResponse<List<Car>>");
             VerifyCSharpDiagnostic(test);
         }
 
-        //No diagnostics expected to show up
         [TestMethod]
-        public void ShouldNotThrowWhenDerivedType()
+        public void ShouldNotReportDiagnosticsWhenDerivedType()
         {
             var test = GetFile("Auto", "Car");
-
             VerifyCSharpDiagnostic(test);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
-        public void ShouldThrowWhenDifferentTypes()
+        public void ShouldReportDiagnosticsWhenDifferentTypes()
         {
             var test = GetFile("Cat", "Car");
 
@@ -60,7 +52,8 @@ namespace ResponseTypeAttributeValidator.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 15, 34)
+                            new DiagnosticResultLocation("Test0.cs", 15, 34),
+                            new DiagnosticResultLocation("Test0.cs", 23, 31)
                         }
             };
 
@@ -68,13 +61,10 @@ namespace ResponseTypeAttributeValidator.Test
 
             var fixtest = GetFile("Car", "Car");
 
-            // No fix to verify yet
-            VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
-        public void ShouldThrowWhenNoReturnType()
+        public void ShouldReportDiagnosticsWhenNoReturnType()
         {
             var test = GetFile("Car", string.Empty);
 
@@ -85,21 +75,20 @@ namespace ResponseTypeAttributeValidator.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 15, 34)
+                            new DiagnosticResultLocation("Test0.cs", 15, 34),
+                            new DiagnosticResultLocation("Test0.cs", 20, 28),
+                            new DiagnosticResultLocation("Test0.cs", 23, 28)
+                            
                         }
             };
 
             VerifyCSharpDiagnostic(test, expected);
 
             var fixtest = GetFile("Car", "Car");
-
-            // No fix to verify yet
-            VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
-        public void ShouldThrowWhenExpectingUnmatchedIEnumerableType()
+        public void ShouldReportDiagnosticsWhenExpectingUnmatchedIEnumerableType()
         {
             var test = GetFile("IEnumerable<Car>", "Car");
             
@@ -110,19 +99,16 @@ namespace ResponseTypeAttributeValidator.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 15, 34)
+                            new DiagnosticResultLocation("Test0.cs", 15, 34),
+                            new DiagnosticResultLocation("Test0.cs", 23, 31)
                         }
             };
 
             VerifyCSharpDiagnostic(test, expected);
-
-            // No fix to verify yet
-            //VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
-        public void ShouldThrowWhenReturningUnmatchedIEnumerableType()
+        public void ShouldReportDiagnosticWhenReturningUnmatchedIEnumerableType()
         {
 
             var test = GetFile("Car", "List<Car>");
@@ -133,19 +119,16 @@ namespace ResponseTypeAttributeValidator.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 15, 34)
+                            new DiagnosticResultLocation("Test0.cs", 15, 34),
+                            new DiagnosticResultLocation("Test0.cs", 23, 31)
                         }
             };
 
             VerifyCSharpDiagnostic(test, expected);
-
-            // No fix to verify yet
-            //VerifyCSharpFix(test, fixtest);
         }
 
-        //Diagnostic and CodeFix both triggered and checked for
         [TestMethod]
-        public void ShouldThrowWhenParentType()
+        public void ShouldReportDiagnosticWhenParentType()
         {
 
             var test = GetFile("Car", "Auto");
@@ -156,14 +139,12 @@ namespace ResponseTypeAttributeValidator.Test
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 15, 34)
+                            new DiagnosticResultLocation("Test0.cs", 15, 34),
+                            new DiagnosticResultLocation("Test0.cs", 23, 31)
                         }
             };
 
             VerifyCSharpDiagnostic(test, expected);
-
-            // No fix to verify yet
-            //VerifyCSharpFix(test, fixtest);
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
