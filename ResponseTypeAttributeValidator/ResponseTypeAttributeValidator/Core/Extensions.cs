@@ -1,10 +1,18 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Linq;
 
 namespace ResponseTypeAttributeValidator
 {
     internal static class Extensions
     {
+        internal static bool FindAttributeTypeNode(this SyntaxNode anyNode)
+        {
+            var test = anyNode.AncestorsAndSelf().OfType<AttributeSyntax>();
+
+            return true;
+        }
+
         internal static bool TypeEquals(this INamedTypeSymbol attributeType, INamedTypeSymbol returnType)
         {
             if (ReferenceEquals(returnType, null)) return false;

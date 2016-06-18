@@ -83,6 +83,8 @@ namespace ResponseTypeAttributeValidator.Test
             VerifyCSharpDiagnostic(test, expected);
 
             var fixtest = GetFile("Car", "Car");
+
+            VerifyCSharpFix(test, fixtest);
         }
 
         [TestMethod]

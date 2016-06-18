@@ -27,17 +27,18 @@ namespace ResponseTypeAttributeValidator
 
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
+            
             var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
-            // TODO: Replace the following code with your own analysis, generating a CodeAction for each fix to suggest
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
             // Find the type declaration in the attribute identified by the diagnostic.
-            var declaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<TypeOfExpressionSyntax>().First();
-            var declar = root.FindToken(diagnosticSpan.Start).Parent.Ancestors().OfType<MethodDeclarationSyntax>().First();
-            var retState = declar.DescendantNodes().OfType<ReturnStatementSyntax>().First();
+            var typeofDeclaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<TypeOfExpressionSyntax>().First();
+            var methodDeclaration = root.FindToken(diagnosticSpan.Start).Parent.Ancestors().OfType<MethodDeclarationSyntax>().First();
+
+            var retState = methodDeclaration.DescendantNodes().OfType<ReturnStatementSyntax>().First();
 
             var retTypeInfo = semanticModel.GetTypeInfo(retState.Expression);
             var retType = (retTypeInfo.Type as INamedTypeSymbol)?.TypeArguments.SingleOrDefault();
@@ -46,7 +47,7 @@ namespace ResponseTypeAttributeValidator
             {
                 context.RegisterCodeFix(CodeAction.Create(
                     @"Remove ResponseType attribute."+Environment.NewLine+"WARNING: This action might change your public API.",
-                    c => RemoveAttributeAsync(context.Document, declaration, c),
+                    c => RemoveAttributeAsync(context.Document, typeofDeclaration, c),
                     Title),
                     diagnostic);
             }
@@ -55,7 +56,7 @@ namespace ResponseTypeAttributeValidator
                 context.RegisterCodeFix(
                 CodeAction.Create(
                     $"Replace attribute value with real return type {retType.Name}." + Environment.NewLine + "WARNING: This action might change your public API.",
-                    c => SynchronizeAttributeAsync(context.Document, declaration, (INamedTypeSymbol)retType, c),
+                    c => SynchronizeAttributeAsync(context.Document, typeofDeclaration, (INamedTypeSymbol)retType, c),
                     Title),
                 diagnostic);
             }    
